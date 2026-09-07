@@ -16,7 +16,7 @@ def _probe_gemini():
     "Testing Gemini model before fallback"
     try:
         model = GoogleGenerativeAIEmbeddings(
-            model="models/text-embedding-004",
+            model="gemini-embedding-2-preview",
             api_key=settings.GEMINI_API_KEY,
         )
         model.embed_query("Hello, world!")

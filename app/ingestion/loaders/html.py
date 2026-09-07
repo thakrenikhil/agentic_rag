@@ -9,7 +9,7 @@ def parse_html(file_path: str):
             soup = BeautifulSoup(content, "html.parser")
 
 
-            for script in soup[Tag](["script","style","meta","noscript"]):
+            for script in soup(["script","style","meta","noscript"]):
                 script.decompose()
 
             text = soup.get_text(separator="\n")

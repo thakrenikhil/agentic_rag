@@ -11,7 +11,7 @@ def parse_pdf(file_path: str):
             text_parts: list[str] = []  
             blank_pages:list[int] = []  
         
-            for i, page in enumerate[PageObject](reader.pages):
+            for i, page in enumerate(reader.pages):
                 text = page.extract_text() or ""
                 if text.strip():
                     text_parts.append(text)

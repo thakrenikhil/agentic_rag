@@ -26,17 +26,17 @@ qdrant_client = QdrantClient(
     api_key = settings.QDRANT_API_KEY,
 )
 
-def save_processsed_locally(data:dict,source_type:str,filename:str)->str:
-    "save parsed chunk metadata as JSON in processed_data/<source_type>/."
+def save_processed_locally(data:dict,source_type:str,filename:str)->str:
+    """save parsed chunk metadata as JSON in processed_data/<source_type>/."""
     folder = os.path.join(PROCESSED_DATA_DIR,source_type)
     os.makedirs(folder,exist_ok = True)
     dest = os.path.join(folder,f"{filename}.json")
     with open(dest,"w",encoding = "utf-8") as f:
         json.dump(data,f,ensure_ascii= False,indent = 2)
-    return dest;
+    return dest
 
 def process_file(file_path: str, filename: str, source_type: str):
-     "Parse → chunk → save locally → embed → index in Qdrant."
+     """Parse → chunk → save locally → embed → index in Qdrant."""
      with logfire.span("Processing File", file=filename, source=source_type):
         try:
             # 1. Extract text based on file extension
@@ -70,7 +70,7 @@ def process_file(file_path: str, filename: str, source_type: str):
                 "chunks": chunks
             }
 
-            local_path = save_processsed_locally(processed_data,source_type,filename)
+            local_path = save_processed_locally(processed_data,source_type,filename)
             logfire.info(f"Saved processed data → {local_path}")
 
             #4. embed and index in Qdrant
@@ -155,3 +155,19 @@ def run_universal_ingestion(base_dir: str, explicit_source_type: str = None, wip
 
 
 
+if __name__ == "__main__":
+    # Usage:
+    #   python -m app.ingestion.processor DATA --wipe
+    #   python -m app.ingestion.processor DATA/true_data true
+    wipe_requested = "--wipe" in sys.argv
+    clean_args = [a for a in sys.argv if a != "--wipe"]
+
+    target_dir = clean_args[1] if len(clean_args) > 1 else "DATA"
+    explicit_type = clean_args[2] if len(clean_args) > 2 else None
+
+    if not os.path.exists(target_dir):
+        print(f"Error: path '{target_dir}' does not exist.")
+        sys.exit(1)
+
+    run_universal_ingestion(target_dir, explicit_source_type=explicit_type, wipe=wipe_requested)
+    logfire.info("Ingestion job completed.")
