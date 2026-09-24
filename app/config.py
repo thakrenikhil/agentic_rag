@@ -6,7 +6,8 @@ load_dotenv()
 class Settings:
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY")
     GROK_FALLBACK_API_KEY: str = os.getenv("GROK_FALLBACK_API_KEY")
-    GROK_MODEL:str = "llama-3.3-70b-versatile"
+    GROK_MODEL:str = "openai/gpt-oss-120b"
+    GROK_FALLBACK_MODEL:str = "openai/gpt-oss-20b"
     PORTKEY_API_KEY: str = os.getenv("PORTKEY_API_KEY")
     GROQ_SLUG: str = os.getenv("GROQ_SLUG", "groq")
     GROQ_SLUG_2: str = os.getenv("GROQ_SLUG_2", "groq")

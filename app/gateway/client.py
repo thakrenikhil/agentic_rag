@@ -5,10 +5,9 @@ from langchain_openai import ChatOpenAI
 from app.config import settings
 
 
-# Production gateway config:
-#   - Fallback: primary @rag/llama-3.3-70b-versatile → @brag/llama-3.1-8b-instant on failure
-#   - Cache: semantic mode (requires Portkey Enterprise — silently falls back to simple on free/starter)
-#   - Retry: 2 attempts on rate limit / server error before triggering the fallback target
+# Saved in Portkey as pc-portke-f5bac0. This workspace blocks inline configs,
+# so clients send that slug. Update the saved config whenever these targets change.
+# Fallback: primary model → smaller model after retry on 429/503.
 GATEWAY_CONFIG = {
     "strategy": {"mode": "fallback"},
     "cache": {"mode": "simple"},
@@ -17,14 +16,14 @@ GATEWAY_CONFIG = {
         "on_status_codes": [429, 503]
     },
     "targets": [
-        {"override_params": {"model": f"@{settings.GROQ_SLUG}/llama-3.3-70b-versatile"}},
-        {"override_params": {"model": f"@{settings.GROQ_SLUG_2}/llama-3.1-8b-instant"}},
+        {"override_params": {"model": f"@{settings.GROQ_SLUG}/{settings.GROK_MODEL}"}},
+        {"override_params": {"model": f"@{settings.GROQ_SLUG_2}/{settings.GROK_FALLBACK_MODEL}"}},
     ]
 }
 
 portkey_client = Portkey(
     api_key=settings.PORTKEY_API_KEY,
-    config=GATEWAY_CONFIG
+    config="pc-portke-f5bac0"
 )
 
 
@@ -42,11 +41,11 @@ def get_langchain_llm(feature: str = "rag") -> ChatOpenAI:
     return ChatOpenAI(
         api_key=settings.PORTKEY_API_KEY,
         base_url=PORTKEY_GATEWAY_URL,
-        model=f"@{settings.GROQ_SLUG}/llama-3.3-70b-versatile",
+        model=f"@{settings.GROQ_SLUG}/{settings.GROK_MODEL}",
         temperature=0,
         default_headers=createHeaders(
             api_key=settings.PORTKEY_API_KEY,
-            config=GATEWAY_CONFIG,
+            config="pc-portke-f5bac0",
             metadata={
                 "feature": feature,
                 "_user": "rag-system",

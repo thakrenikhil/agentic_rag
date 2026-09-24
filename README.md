@@ -34,7 +34,7 @@ A local-first, agentic Retrieval-Augmented Generation (RAG) system for enterpris
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         PORTKEY LLM GATEWAY                             │
-│   Groq Llama 3.3 70B  →  fallback Llama 3.1 8B  │  cache  │  retry    │
+│   Groq gpt-oss-120b  →  fallback gpt-oss-20b  │  cache  │  retry     │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -60,7 +60,7 @@ A local-first, agentic Retrieval-Augmented Generation (RAG) system for enterpris
 
 | Module | Status | Notes |
 |--------|--------|-------|
-| **Gateway config** | WIP | `app/gateway/__init__.py` is empty; `config.py` needs Portkey/Groq slug settings |
+| **Gateway config** | Done | Saved Portkey config `pc-portke-f5bac0`; model IDs in `config.py` |
 | **Agent wiring** | WIP | Graph compiles; no API or UI entry point yet |
 
 ### Planned (confirmed targets)
@@ -154,7 +154,7 @@ GROQ_SLUG=groq
 GROQ_SLUG_2=groq
 ```
 
-> **Note:** `config.py` currently exposes a subset of these variables. The gateway client also expects `PORTKEY_API_KEY`, `GROQ_SLUG`, and `GROQ_SLUG_2` — add them to `Settings` before running the agent.
+`GROQ_SLUG` and `GROQ_SLUG_2` are Portkey integration slugs. Both can be `groq` when the workspace has a single Groq integration. The Groq API key lives on that integration; requests authenticate with `PORTKEY_API_KEY`. Model IDs are `GROK_MODEL` and `GROK_FALLBACK_MODEL` in `app/config.py` (`openai/gpt-oss-120b` and `openai/gpt-oss-20b`). This Portkey workspace blocks inline configs, so those same targets must stay in sync with saved config `pc-portke-f5bac0`.
 
 ---
 
@@ -207,7 +207,7 @@ Processed chunk metadata is written to `processed_data/<source_type>/` as JSON f
 | Layer | Technology |
 |-------|------------|
 | Orchestration | LangGraph, LangChain |
-| LLM | Groq Llama 3.3 70B (via Portkey gateway) |
+| LLM | Groq `openai/gpt-oss-120b`, fallback `openai/gpt-oss-20b` (via Portkey) |
 | Embeddings | Google Gemini Embedding 2 Preview |
 | Vector DB | Qdrant Cloud |
 | Reranking | FlashRank (local ONNX cross-encoder) |
@@ -224,6 +224,7 @@ Processed chunk metadata is written to `processed_data/<source_type>/` as JSON f
 - **Embedding model migration:** Google retired `text-embedding-004` in Jan 2026. The project now uses `gemini-embedding-2-preview`. If you previously indexed with the 768-d fallback, drop and recreate the Qdrant collection (`--wipe`).
 - **Rate limits:** Gemini embedding calls retry up to 4 times with exponential backoff on 429/quota errors.
 - **Context window:** The responder truncates retrieved context at ~25,000 characters to stay within Groq TPM limits.
+- **LLM models:** Groq does not serve `llama-3.3-70b-versatile` or `llama-3.1-8b-instant` on this API key, so the gateway uses OpenAI’s open-weight `openai/gpt-oss-120b` (primary) and `openai/gpt-oss-20b` (fallback). Both are mixture-of-experts models with a 131,072-token context. About 5.1B parameters are active per token on the 120B model, and about 3.6B on the 20B model. They are reasoning models (low, medium, or high effort), so a reply can spend extra output tokens on a reasoning pass. Llama 3.3 70B is a dense instruction model: all ~70B parameters run on every token, and it does not take that separate reasoning pass. The previous fallback, Llama 3.1 8B Instant, was faster and weaker than `gpt-oss-20b`.
 - **Conversational bypass:** The planner routes greetings and memory-only questions directly to the responder, skipping retrieval.
 
 ---
