@@ -1,0 +1,74 @@
+import logfire
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+logfire.configure(token=os.getenv("LOGFIRE_TOKEN"))
+
+
+from fastapi import FastAPI, Response
+from app.agents.graph import rag_agent
+
+from pydantic import BaseModel
+from typing import Optional
+
+
+app = FastAPI(title="RAG Agent API", description="API for the RAG Agent")
+
+class QueryRequest(BaseModel):
+    q:str
+    thread_id: Optional[str] = "default_user"
+
+@app.get("/")
+def home():
+    return {"message": "Welcome to the RAG Agent API"}
+
+@app.get("/graph")
+def get_graph_image():
+    """
+    Returns a Mermaid image of the RAG Agent graph.
+    """
+    try:
+        png_bytes = rag_agent.get_graph().draw_mermaid_png()
+        return Response(content=png_bytes, media_type="image/png")
+    except Exception as e:
+        return Response(content=f"Error: {str(e)}", status_code=500)
+
+@app.post("/query")
+def query(request: QueryRequest):
+    """
+    Handles user queries and returns the response.
+    """
+
+    q = request.q
+    thread_id = request.thread_id
+
+    initial_state = {
+        "messages": [{"role": "user", "content": q}],
+        "current_query": q,
+        "documents": [],
+        "plan":["Start"],
+        "status":"Initializing Graph",
+    }
+
+    config = {"configurable":{ "thread_id": thread_id}}
+
+    try: 
+        final_output = rag_agent.invoke(initial_state, config)
+        return {
+            "question": q,
+            "answer": final_output.get("final_answer"),
+            "thought_process": final_output.get("plan"),
+            "status": final_output.get("status"),
+            "sources": final_output.get("documents", [])
+        }
+
+    except Exception as e:
+        logfire.error(f"Backend Execution Failed: {e}")
+        return {
+            "question": q,
+            "answer": "I apologize, but I encountered an internal error while processing your request. Please try again later.",
+            "thought_process": ["Error encountered during execution."],
+            "status": "error",
+            "sources": []
+        }
