@@ -2,8 +2,12 @@
 # Structure mirrors notebooks/01_guardrails.ipynb Experiment 5:
 # off-topic + jailbreak rails stacked with dialog rails (greeting/farewell/capabilities).
 
+OFF_TOPIC_RESPONSE = (
+    "I'm an Enterprise IT Assistant focused on Kubernetes, Intel hardware, "
+    "and networking. I can't help with that — but ask me anything technical!"
+)
 
-COLANG_CONTENT = """
+COLANG_CONTENT = f"""
 define user ask off topic
   "tell me a joke"
   "what is the capital of france"
@@ -12,13 +16,17 @@ define user ask off topic
   "what should I eat for dinner"
   "who won the game yesterday"
   "recommend a movie"
+  "yo recommend a good netflix show"
+  "recommend a good tv series"
+  "what's a good show to binge"
+  "suggest a movie to watch tonight"
   "what is the weather today"
   "can you help me with math homework"
   "tell me about world history"
   "what is the best restaurant near me"
 
 define bot refuse off topic
-  "I'm an Enterprise IT Assistant focused on Kubernetes, Intel hardware, and networking. I can't help with that — but ask me anything technical!"
+  "{OFF_TOPIC_RESPONSE}"
 
 define flow handle off topic
   user ask off topic

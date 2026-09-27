@@ -1,6 +1,7 @@
 import logfire
 from app.agents.state import AgentState
 from app.gateway import portkey_client, extract_cache_status
+from app.guardrails.colang_rules import OFF_TOPIC_RESPONSE
 
 
 def generate_node(state: AgentState):
@@ -18,11 +19,24 @@ def generate_node(state: AgentState):
 
     user_msg = state["messages"][-1]["content"] if state["messages"] else ""
 
+    if query == "OFF_TOPIC":
+        logfire.info("Refusing off-topic request without calling the LLM.")
+        return {
+            "final_answer": OFF_TOPIC_RESPONSE,
+            "status": "Off-topic request refused.",
+            "plan": state["plan"],
+            "messages": [{"role": "assistant", "content": OFF_TOPIC_RESPONSE}],
+        }
+
     if query == "CONVERSATIONAL":
         logfire.info("Generating conversational response using memory.")
         prompt = f"""
-        You are a friendly and helpful Enterprise AI Assistant.
-        Answer the user's latest message using the CONVERSATION HISTORY below.
+        You are a friendly Enterprise IT Assistant.
+        Use CONVERSATION HISTORY only. Do not use outside knowledge.
+
+        If the latest message is a greeting, farewell, thanks, or can be answered from the history, answer it.
+        Otherwise reply with exactly:
+        {OFF_TOPIC_RESPONSE}
 
         CONVERSATION HISTORY:
         {history_str}
